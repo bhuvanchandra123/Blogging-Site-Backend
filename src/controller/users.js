@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt")
 const User = require("../models/users");
 const jwtoken = require("jsonwebtoken")
+const validator = require("validator")
+
 require('dotenv').config();
 
 
@@ -11,6 +13,10 @@ const creatUser = async (req, res) => {
       }
       if(password.length < 8){
          return res.status(400).json({message: "password should contain minimum 8 characters"})
+      }
+      // console.log(email)
+      if(!validator.isEmail(email)){
+         return res.status(400).json({message: "Invalid email format"})
       }
      try{
         const existEmail = await User.findOne({email});
@@ -36,7 +42,7 @@ const creatUser = async (req, res) => {
 
        return res.status(201).send({status: true, msg: "user created successfully", data: newUser});
      }catch(err){
-        res.status(500).send({message: "server error"})
+        res.status(500).send({message: "server error", error: err.message})
      }
 };
 

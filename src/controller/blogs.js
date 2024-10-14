@@ -41,19 +41,20 @@ const getBlogs = async (req, res) => {
       if(subcategory){
         filterOption.subcategory = subcategory
       }    
-      console.log(filterOption)
+      // console.log(filterOption)
  
-      const limit = 5;
-      const skip = (parseInt(page) - 1 * limit)
+      const limit = 2;
+      const skip = (parseInt(page) - 1) * limit;
       const result = await Blog.find(filterOption)
       .skip(skip)
       .limit(limit)
+      // console.log('Query result:',result)
     
-      return res.status(200).send({status: true, data: result})// ToDo => add pagination
+      return res.status(200).send({status: true, data: result})
     } catch (err) {
+      console.log(err)
       res.status(400).json({message: "server error"});
     }
-      //$or $in $nin $nor $and
 }
 
 
@@ -65,8 +66,7 @@ const updateBlogs = async (req, res) => {
     if (!blog) {
       return res.status(404).json({status: false, msg: 'Blog not found' });
     }
-    // Object.assign(blog, req.body);
-    // await blog.save();
+
     res.status(201).json({status: true, msg: 'Blog updated successfully', data: blog });
     } catch (err) {
       res.status(400).json({message: "server error"});
@@ -82,9 +82,7 @@ const softDeleteBlogs = async (req, res) => {
     if (!blog) {
       return res.status(404).json({ status: false, msg: 'Blog not found' });
     }
-    // blog.isDeleted = true;
-    // blog.deletedAt = new Date();
-    // await blog.save();
+
     res.status(200).json({ status: true, msg: 'Blog deleted successfully'});
     } catch (err) {
       console.log(err)
@@ -96,7 +94,9 @@ const softDeleteBlogs = async (req, res) => {
 const deleteBlogs = async (req, res) => {
     try {
       const filterOption = {}
-      const {userId, category, tags, isPublished} = req.query;
+      const {userId} = req.params;
+      // console.log(userId)
+      let {category, tags, isPublished} = req.query;
        if(userId){
          filterOption.userId = userId
        }
@@ -104,23 +104,41 @@ const deleteBlogs = async (req, res) => {
         filterOption.category = category
       }
       if(tags){
-        filterOption.tags = {$all: tags.split(",")}
+        filterOption.tags = {$all: tags.split(",").map(tag => tag.trim()) }
+      } // tags is not working
+      if(isPublished){
+        filterOption.isPublished = isPublished === "false"? false : true;
       }
-      console.log(filterOption)
-      // if(!isPublished){
-      //   filterOption.isPublished = isPublished
-      // }
+      // console.log(filterOption)
       const result = await Blog.deleteMany(filterOption)
-      console.log(result)
-       if(result === 0){
+       if(result.deletedCount === 0){
          return res.status(400).send({status: false, msg: "blog not found"})
        }
+       
        return res.status(200).send({status: true, msg: "deleted successfully"})
     } catch (err) {
-      res.status(400).json({message: "server error"});
+      res.status(500).json({message: "server error", error: err.message});
     }
 }
 
 
-module.exports = {createBlog, getBlogs, updateBlogs, softDeleteBlogs, deleteBlogs};
+const updateLikeCount = async (req, res) => {
+  try{
+    const {blogId} = req.params;
+    // console.log(req.params)
+    const blog = await Blog.findByIdAndUpdate(blogId,{ $inc: { likeCount: 1 } },
+      { new: true })
+    console.log(blog)
+    if(!blog){
+       return res.status(404).send({status: false, msg: "blog not found"})
+    }
+    return res.status(200).send({status: true, msg: "blog liked successfully",likeCount: blog.likeCount})
+  }catch(err){
+    return res.status(500).send({status: false, msg: "server error"})
+  }
+
+}
+
+
+module.exports = {createBlog, getBlogs, updateBlogs, softDeleteBlogs, deleteBlogs, updateLikeCount};
 
