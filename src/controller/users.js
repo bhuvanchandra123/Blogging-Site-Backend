@@ -5,7 +5,6 @@ const validator = require("validator")
 
 require('dotenv').config();
 
-
 const creatUser = async (req, res) => {
     const {fName, lName, email, password} = req.body;
       if(!fName || !lName || !email || !password){

@@ -95,26 +95,42 @@ const deleteBlogs = async (req, res) => {
     try {
       const filterOption = {}
       const {userId} = req.params;
-      // console.log(userId)
-      let {category, tags, isPublished} = req.query;
+      const {category, tags, isPublished} = req.query;
+      
+      if (!userId) {
+        return res.status(400).send({ status: false, msg: "userId is required" });
+      }
+      if (!category && !tags && isPublished === undefined) {
+        return res.status(400).send({ status: false, msg: "At least one query parameter (category, tags, or isPublished) is required" });
+    }
+         filterOption.userId = userId;
+
        if(userId){
          filterOption.userId = userId
        }
        if(category){
         filterOption.category = category
-      }
-      if(tags){
+       }
+       if(tags){
         filterOption.tags = {$all: tags.split(",").map(tag => tag.trim()) }
-      } // tags is not working
-      if(isPublished){
-        filterOption.isPublished = isPublished === "false"? false : true;
+       } 
+       if(isPublished !== undefined){
+        if(isPublished === "false"){
+          filterOption.isPublished = false;
+        }else if(isPublished === "true"){
+          filterOption.isPublished = true;
+        }else{
+        return res.status(400).send({status: false, msg: "isPublished accecpt only boolean value e.i. true or false"})
+        }
+       }
+      
+      if(!filterOption){
+        return res.status(400).send({status: false, msg: "query field is missing"})
       }
-      // console.log(filterOption)
       const result = await Blog.deleteMany(filterOption)
        if(result.deletedCount === 0){
-         return res.status(400).send({status: false, msg: "blog not found"})
+         return res.status(400).send({status: false, msg: "No blogs found matching the criteria"})
        }
-       
        return res.status(200).send({status: true, msg: "deleted successfully"})
     } catch (err) {
       res.status(500).json({message: "server error", error: err.message});
